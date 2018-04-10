@@ -7,7 +7,6 @@
 #include <sys/time.h>
 #include <sys/ipc.h>
 #include <dirent.h>
-//#include <terminos.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,6 +37,7 @@ void read_mod(int shmid)
 	int * shmaddr=(int*)shmat(shmid,(int*)NULL,0);
 	char * menu = "/dev/input/event0";
 	char * nine_key = "/dev/fpga_push_switch";
+	int buf[9]={0,};
 
 	shmaddr[1]=1;
 	if((fd = open(menu,O_RDONLY|O_NONBLOCK))==-1){
@@ -45,20 +45,36 @@ void read_mod(int shmid)
 	}
 	dev = open(nine_key,O_RDWR);
 	while(1){
-		usleep(400000);
+		printf("mode : %d\n",shmaddr[1]);
 		if((rd =  read(fd,ev,size * BUFF_SIZE)) >= size){
 			value = ev[0].value;
 			shmaddr[0]=ev[0].code;
 			if(shmaddr[0]==158)
 				return;
 			if(shmaddr[0]==115)
-				shmaddr[1]=(shmaddr[1]+1)%4+1;
+			{
+				shmaddr[1]++;
+				if(shmaddr[1]>5)
+					shmaddr[1]=0;
+			}
 			else if(shmaddr[0]==114)
-				shmaddr[1]=(shmaddr[1]-1)%4+1;
+			{
+				shmaddr[1]--;
+				if(shmaddr[1]<0)
+					shmaddr[1]=4;
+			}
 		}
+		if(shmaddr[1]==1)
+			shmaddr[13]=-1;
 		read(dev,&push_sw_buff,sizeof(push_sw_buff));
 		for(i=0;i<MAX_BUTTON;i++){
-			shmaddr[i+2] = push_sw_buff[i];
+			if(buf[i]==1 && push_sw_buff[i]==0)
+			{
+					shmaddr[i+2] = KEY_PRESS;
+					buf[i]=0;
+			}
+			else
+					buf[i]=push_sw_buff[i];
 		}
 	}
 	close(dev);

@@ -6,6 +6,7 @@
 #include <sys/shm.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <time.h>
 
 #include <string.h>
 
@@ -17,66 +18,101 @@
 
 int * shmaddr;
 int led_flag=0;
-void clock(void);
+clock_t start=0, end=0;
+void output_led(void);
+void output_fnd(void);
 int main(int argc,char **argv)
 {
 	int dev;
 	shmaddr = (int*)shmat(atoi(argv[1]),(int*)NULL,0);
 	printf("output\n\n");
+	output_led();
 	while(1)
 	{
 		if(shmaddr[0]==158)
 			break;
-		sleep(1);
-		clock();
+
+			output_fnd();
+			if(clock()-start>=1000000)
+			{
+				output_led();
+				start=clock();
+			}
 	}
 }
-void clock(void)
+void output_led(void)
 {
-	int dev;
 	int fd;
 	unsigned long *fpga_addr=0;
 	unsigned char *led_addr=0;
-	unsigned char data[4];
-	unsigned char retval;
-	int i;
-	
 
-	dev = open(FND_DEVICE,O_RDWR);
-
-	fd = open(LED_DEVICE,O_RDWR | O_SYNC);
+	fd = open(LED_DEVICE,O_RDWR|O_SYNC);
 
 	fpga_addr = (unsigned long *)mmap(NULL,4096,PROT_READ | PROT_WRITE,MAP_SHARED,fd,FPGA_BASE_ADDRESS);
 
 	led_addr = (unsigned char*)((void*)fpga_addr+LED_ADDR);
 	
+	if(fpga_addr==MAP_FAILED)
+	{
+		printf("fuck\n");
+		close(fd);
+		exit(1);
+	}
+
 	if(shmaddr[13]<0)
 		*led_addr = 128;
 	else
 	{ 
 		if(led_flag==1)
 		{
-			*led_addr = 32;
+			*led_addr = 16;
 			led_flag=0;
 		}
 		else
 		{
-			*led_addr = 64;
+			*led_addr = 32;
 			led_flag=1;
 		}
 	}
-
-	if(dev<0)
-		printf("fuck you\n\n");
-	data[0]=shmaddr[11]/10;
-	data[1]=shmaddr[11]%10;
-	data[2]=shmaddr[12]/10;
-	data[3]=shmaddr[12]%10;
-
-	retval=write(dev,&data,4);	
-
-
 	munmap(led_addr,4096);
+	close(fd);
+}
+void output_fnd(void)
+{
+	int dev;
+	int res;
+	unsigned char data[4];
+	unsigned char retval;
+	int i;
+	
+
+	dev = open(FND_DEVICE,O_RDWR);
+	if(dev<0)
+	{
+		printf("fuck you\n\n");
+		close(dev);
+		exit(1);
+	}
+	if(shmaddr[1]==1)
+	{
+		data[0]=(shmaddr[11])/10;
+		data[1]=(shmaddr[11])%10;
+		data[2]=(shmaddr[12])/10;
+		data[3]=(shmaddr[12])%10;
+	}
+	else if(shmaddr[1] ==2)
+	{
+		res = shmaddr[15];
+		data[3] = (res)%shmaddr[14];
+		res/=shmaddr[14];
+		data[2] = (res)%shmaddr[14];
+		res/=shmaddr[14];
+		data[1] = (res)%shmaddr[14];
+		data[0] = 0;
+	}
+		retval=write(dev,&data,4);	
+
+
 	close(dev);
 
 	return;
