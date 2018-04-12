@@ -19,6 +19,7 @@
 int * shmaddr;
 int led_flag=0;
 clock_t start=0, end=0;
+	unsigned char data[4];
 void output_led(void);
 void output_fnd(void);
 int main(int argc,char **argv)
@@ -31,13 +32,29 @@ int main(int argc,char **argv)
 	{
 		if(shmaddr[0]==158)
 			break;
+		output_fnd();
 
-			output_fnd();
+		if(shmaddr[1]==1)
+		{
+			//output_fnd();
 			if(clock()-start>=1000000)
 			{
 				output_led();
 				start=clock();
 			}
+		}
+		if(shmaddr[1]==2)
+		{
+			unsigned char res;
+			//output_fnd();
+			/*res = shmaddr[15];
+			data[3] = res%shmaddr[14];
+			res/=shmaddr[14];
+			data[2] = res%shmaddr[14];
+			res/=shmaddr[14];
+			data[1] = res%shmaddr[14];
+			data[0] = 0;*/
+		}
 	}
 }
 void output_led(void)
@@ -59,7 +76,7 @@ void output_led(void)
 		exit(1);
 	}
 
-	if(shmaddr[13]<0)
+	if(shmaddr[11]<0)
 		*led_addr = 128;
 	else
 	{ 
@@ -81,7 +98,7 @@ void output_fnd(void)
 {
 	int dev;
 	int res;
-	unsigned char data[4];
+	//unsigned char data[4];
 	unsigned char retval;
 	int i;
 	
@@ -93,26 +110,13 @@ void output_fnd(void)
 		close(dev);
 		exit(1);
 	}
-	if(shmaddr[1]==1)
-	{
-		data[0]=(shmaddr[11])/10;
-		data[1]=(shmaddr[11])%10;
-		data[2]=(shmaddr[12])/10;
-		data[3]=(shmaddr[12])%10;
-	}
-	else if(shmaddr[1] ==2)
-	{
-		res = shmaddr[15];
-		data[3] = (res)%shmaddr[14];
-		res/=shmaddr[14];
-		data[2] = (res)%shmaddr[14];
-		res/=shmaddr[14];
-		data[1] = (res)%shmaddr[14];
-		data[0] = 0;
-	}
-		retval=write(dev,&data,4);	
 
-
+	data[0]=shmaddr[15];
+	data[1]=shmaddr[14];
+	data[2]=shmaddr[13];
+	data[3]=shmaddr[12];	
+	//printf("%d%d%d%d\n",shmaddr[12],shmaddr[13],shmaddr[14],shmaddr[15]);
+	retval=write(dev,&data,4);	
 	close(dev);
 
 	return;
