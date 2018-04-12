@@ -19,6 +19,15 @@
 #define KEY_RELEASE 0
 #define KEY_PRESS 1
 
+
+/*******************************
+  child_process#1
+process_name : inproc
+function : input SW,MENU key
+execute by main process by execr
+********************************/
+
+
 void read_mod(int shmid);
 int main(int argc, char *argv[])
 {
@@ -26,7 +35,7 @@ int main(int argc, char *argv[])
 	int shmid = atoi(argv[1]);
 	read_mod(shmid);
 }
-void read_mod(int shmid)
+void read_mod(int shmid)	//	shmaddr[0~9] : SW key, shmadrr[57] : MENU key
 {
 	struct input_event ev[BUFF_SIZE];
 	unsigned char push_sw_buff[MAX_BUTTON];
@@ -37,6 +46,8 @@ void read_mod(int shmid)
 	int * shmaddr=(int*)shmat(shmid,(int*)NULL,0);
 	char * menu = "/dev/input/event0";
 	char * nine_key = "/dev/fpga_push_switch";
+	int input;
+	int prev_input;
 	int buf[9]={0,};
 
 	shmaddr[1]=1;
@@ -46,31 +57,19 @@ void read_mod(int shmid)
 	dev = open(nine_key,O_RDWR);
 	while(1){
 		printf("mode : %d\n",shmaddr[1]);
-		if((rd =  read(fd,ev,size * BUFF_SIZE)) >= size){
-			value = ev[0].value;
-			shmaddr[0]=ev[0].code;
-			if(shmaddr[0]==158)
+		if((rd =  read(fd,ev,size * BUFF_SIZE)) >= size){		//read menu key
+			input=ev[0].code;
+			if(input==158)
 				return;
-			if(shmaddr[0]==115)
-			{
-				shmaddr[1]++;
-				if(shmaddr[1]>5)
-					shmaddr[1]=0;
-			}
-			else if(shmaddr[0]==114)
-			{
-				shmaddr[1]--;
-				if(shmaddr[1]<0)
-					shmaddr[1]=4;
-			}
+			if((input==115 && prev_input != input) || (input == 114 && prev_input != input))
+				shmaddr[57] = input;
+			prev_input = input;
 		}
-		if(shmaddr[1]==1)
-			shmaddr[13]=-1;
 		read(dev,&push_sw_buff,sizeof(push_sw_buff));
-		for(i=0;i<MAX_BUTTON;i++){
+		for(i=0;i<MAX_BUTTON;i++){					//if key is pressed and released, then event occur
 			if(buf[i]==1 && push_sw_buff[i]==0)
 			{
-					shmaddr[i+2] = KEY_PRESS;
+					shmaddr[i] = KEY_PRESS;
 					buf[i]=0;
 			}
 			else
