@@ -26,22 +26,7 @@ process_name : output_process
 function : output all fpga
 execute by main process by execr
 *********************************/
-<<<<<<< HEAD
 
-
-
-int * shmaddr;
-int led_flag=0;
-clock_t start=0, end=0;
-
-void output_led(void)		//LED use mmap, and controlled by shmaddr[14]
-{
-	int fd;
-	unsigned long *fpga_addr=0;
-	unsigned char *led_addr=0;
-=======
-
->>>>>>> dc89ad93ac5dc6d410ab05eda2a834785edad678
 
 
 int * shmaddr;
@@ -51,23 +36,10 @@ time_t start,end;
 unsigned long *fpga_addr=0;
 unsigned char *led_addr=0;
 
-<<<<<<< HEAD
-	led_addr = (unsigned char*)((void*)fpga_addr+LED_ADDR);
-	
-	if(fpga_addr==MAP_FAILED)
-	{
-		printf("fail on read LED Memory\n");
-		close(fd);
-		exit(1);
-	}
-
-	if(shmaddr[14]<0)
-=======
 void output_led(void)		//LED use mmap, and controlled by shmaddr[14]
 {
 
-	if(shmaddr[14]<=0)
->>>>>>> dc89ad93ac5dc6d410ab05eda2a834785edad678
+	if(shmaddr[14]<0)
 		*led_addr = 128;
 	else if(shmaddr[14]==1) 
 	{ 
@@ -95,6 +67,8 @@ void output_led(void)		//LED use mmap, and controlled by shmaddr[14]
 			*led_addr = 32;
 		if(shmaddr[14]==2)
 			*led_addr = 16;
+		if(shmaddr[14]==0)
+			*led_addr = 0; 
 	}
 	
 }
@@ -137,26 +111,15 @@ void output_text(void)	// TEXT controlled by shmaddr[15~46]
 	int chk_size;
 
 	unsigned char string[32];
-<<<<<<< HEAD
-	memcpy(string,shmaddr+15,32);
-
-=======
 	for(i=0;i<32;i++)
 		string[i] = shmaddr[i+15];
->>>>>>> dc89ad93ac5dc6d410ab05eda2a834785edad678
 	dev = open(TEXT_DEVICE,O_WRONLY);
 	if(dev<0){
 		printf("fail on open TEXT Device file\n");
 		exit(1);
 	}
 
-<<<<<<< HEAD
-	for(i=0;i<32;i++)
-		printf("%c",string[i]);
-//	write(dev,string,MAX_BUFF);
-=======
 	write(dev,string,MAX_BUFF);
->>>>>>> dc89ad93ac5dc6d410ab05eda2a834785edad678
 	close(dev);
 }
 void output_dot(void)	//DOT controlled by shmaddr[47~56]
@@ -164,12 +127,6 @@ void output_dot(void)	//DOT controlled by shmaddr[47~56]
 	int i;
 	int dev;
 	int str_size;
-<<<<<<< HEAD
-	int set_num;
-
-
-=======
->>>>>>> dc89ad93ac5dc6d410ab05eda2a834785edad678
 	dev = open(DOT_DEVICE,O_WRONLY);
 	if(dev<0){
 		printf("fail on open DOT Device file\n");
@@ -178,12 +135,6 @@ void output_dot(void)	//DOT controlled by shmaddr[47~56]
 
 	write(dev,shmaddr+47,10);
 	
-<<<<<<< HEAD
-	for(i=0;i<10;i++)
-		printf("%d",shmaddr[i+47]);
-	close(dev);
-}
-=======
 //	for(i=0;i<10;i++)
 //		printf("%d",shmaddr[i+47]);
 	close(dev);
@@ -206,29 +157,11 @@ void open_led(void)		//mmap LED Device
 	led_addr = (unsigned char*)((void*)fpga_addr+LED_ADDR);
 
 }
->>>>>>> dc89ad93ac5dc6d410ab05eda2a834785edad678
 int main(int argc,char **argv)		//output all shmaddr[10~56],FND,LED,TEXT,DOT
 {
 	int dev;
 	shmaddr = (int*)shmat(atoi(argv[1]),(int*)NULL,0);
 	printf("output\n\n");
-<<<<<<< HEAD
-	output_led();
-	while(1)
-	{
-		if(shmaddr[0]==158)
-			break;
-
-			output_fnd();
-			if(clock()-start>=1000000)
-			{
-				output_led();
-				start=clock();
-			}
-			output_dot();
-			output_text();
-	}
-=======
 	open_led();
 	time(&start);
 	while(1)
@@ -245,5 +178,4 @@ int main(int argc,char **argv)		//output all shmaddr[10~56],FND,LED,TEXT,DOT
 	close(fd);
 	printf("output end\n");
 	return 1;
->>>>>>> dc89ad93ac5dc6d410ab05eda2a834785edad678
 }
