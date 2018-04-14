@@ -29,8 +29,8 @@ execute by main process by execr
 
 
 
-int * shmaddr;
-int led_flag=-1;
+unsigned char * shmaddr;
+int led_flag=-2;
 int fd;
 time_t start,end;
 unsigned long *fpga_addr=0;
@@ -39,18 +39,22 @@ unsigned char *led_addr=0;
 void output_led(void)		//LED use mmap, and controlled by shmaddr[14]
 {
 
-	if(shmaddr[14]<0)
+	if(shmaddr[14]==10)
+	{
 		*led_addr = 128;
+		led_flag=-2;
+	}
 	else if(shmaddr[14]==1) 
 	{ 
+		if(led_flag==-2)
+		{
+			time(&start);
+			led_flag=-1;
+		}
 		if(led_flag==1)
-		{
 			*led_addr = 16;
-		}
-		else
-		{
+		else if(led_flag==-1)
 			*led_addr = 32;
-		}
 		if(difftime(time(NULL),start)>=1)
 		{
 			led_flag*=-1;
@@ -59,8 +63,6 @@ void output_led(void)		//LED use mmap, and controlled by shmaddr[14]
 	}
 	else
 	{
-		if(shmaddr[14]==10)
-			*led_addr = 128;
 		if(shmaddr[14]==8)
 			*led_addr = 64;
 		if(shmaddr[14]==4)
@@ -160,10 +162,9 @@ void open_led(void)		//mmap LED Device
 int main(int argc,char **argv)		//output all shmaddr[10~56],FND,LED,TEXT,DOT
 {
 	int dev;
-	shmaddr = (int*)shmat(atoi(argv[1]),(int*)NULL,0);
+	shmaddr = (unsigned char*)shmat(atoi(argv[1]),(int*)NULL,0);
 	printf("output\n\n");
 	open_led();
-	time(&start);
 	while(1)
 	{
 		if(shmaddr[57]==158)

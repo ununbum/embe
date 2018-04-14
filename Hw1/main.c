@@ -4,7 +4,7 @@
 #include <sys/shm.h>
 #include <unistd.h>
 #include <time.h>
-int *shmaddr;
+unsigned char *shmaddr;
 
 int elapse_hour=0,elapse_min=0;
 int hour=0,min=0;
@@ -27,8 +27,10 @@ unsigned char input_mode[2][10]={
 };
 
 unsigned char image[10]={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+unsigned char buffer[10];
 unsigned char row=0,col=0x70;
-unsigned char cursor_flag=-1;
+unsigned char on=1;
+int cursor_flag=-1;
 time_t cursor;
 
 
@@ -68,7 +70,10 @@ void mode1(void)
 		{
 			if(i==0)
 			{
-				shmaddr[14]*=-1;
+				if(shmaddr[14]==10)
+					shmaddr[14]=1;
+				else
+					shmaddr[14]=10;
 				shmaddr[0]=0;
 			}
 			if(shmaddr[14]==1)
@@ -144,6 +149,7 @@ void mode3(void)
 {
 	int i=0;
 	int j=0;
+	int func_flag=0;
 	unsigned char buf=' ';		//function key
 
 	memcpy(shmaddr+47,input_mode[mode_flag],10);
@@ -175,38 +181,32 @@ void mode3(void)
 	if(i==1 && j==2)
 	{
 		printf("clear\n");
-		for(i=15;i<=47;i++)
-			shmaddr[i]=' ';	
+		memset(shmaddr+15,' ',32);
 		cnt+=2;
 		ind=-1;
 		buf=' ';
 		prev_num=0;
 		double_key=0;
-		shmaddr[1]=0;
-		shmaddr[2]=0;
-		return;
+		func_flag=1;
 	}
 	else if(i==4 && j==5)
 	{
-		printf("change\n");
+	//	printf("change\n");
 		if(mode_flag==0)
 			mode_flag=1;
 		else
 			mode_flag=0;
 		cnt+=2;
-		shmaddr[i]=0;
-		shmaddr[j]=0;
-		return;
+		func_flag=1;
 	}
 	else if(i==7 && j==8)
 	{
-		printf("space\n");
+		//printf("space\n");
 		buf=' ';
 		ind++;
 		cnt+=2;
-		shmaddr[i]=0;
-		shmaddr[j]=0;
-		return;
+		func_flag=1;
+	//	return;
 	}
 	else if(j==10)
 	{
@@ -221,7 +221,7 @@ void mode3(void)
 			}
 			else
 			{
-				printf("%d %d\n",i,prev_num);
+			//	printf("%d %d\n",i,prev_num);
 				ind++;
 				cnt++;
 				buf = input[i][key_num];
@@ -237,7 +237,7 @@ void mode3(void)
 	prev_num=i;
 	shmaddr[i]=0;
 	shmaddr[j]=0;
-	if(ind>=0)
+	if(ind>=0 && func_flag==0)
 	{
 		if(ind>=32)
 		{
@@ -259,38 +259,51 @@ void mode4(void)
 
 	for(i=0;i<10;i++)
 	{
-		if(shmaddr[i]==0)
+		if(shmaddr[i]==1)
 		{
+			cnt++;
 			if(i==0)		//reset
 			{
 				row=0;
-				col=0x70;
+				col=0x40;
 				cnt=0;
-				image[10]={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+				memset(image,0x00,10);
 			}
 			else if(i==1)	//up
 			{
 				if(row==0)
+				{
+					shmaddr[i]=0;
 					return;
+				}
 				row--;	
 			}
 			else if(i==3)	//left
 			{
-				if(col==0x00)
+				if(col==0x40)
+				{
+					shmaddr[i]=0;
 					return;
-				col=col>>1;
+				}
+				col = col<<1;
 			}
 			else if(i==5)	//rigth
 			{
-				if(col==0x70)
+				if(col==0x01)
+				{
+					shmaddr[i]=0;
 					return;
-				col=col<<1;
+				}
+				col = col>>1;
 			}
 			else if(i==7)	//down
 			{
 				if(row==9)
+				{
+					shmaddr[i]=0;
 					return;
-				row++
+				}
+				row++;
 			}
 			else if(i==2)	//cursor
 			{
@@ -298,34 +311,40 @@ void mode4(void)
 			}
 			else if(i==6)	//clear
 			{
-				image[10]={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+				printf("clear!\n");
+				memset(image,0,10);
 			}
 			else if(i==8)	//reverse
 			{
+				printf("revers!\n");
 				for(j=0;j<10;j++)
-					image[j]^=image[j];
+					image[j]=~image[j];
 			}
 			else if(i==4)	//draw
 			{
-				image[row]=image[row]|col;
+				image[row] = image[row]^col;
 			}
 			shmaddr[i]=0;
-			for(i=0;i<10;i++)
-			{
-				shmaddr[i+47]=image[i];
-				if(i==row && cursor_flag==-1 && (difftime(time(NULL),cursor)>60))
-				{
-					shmaddr[i+47]=shmaddr[i+47]^col;
-					time(&cursor);
-				}
-			}
+			memcpy(buffer,image,10);
 		}
 	}
-
+	if(cursor_flag==-1)
+	{
+		if(difftime(time(NULL),cursor)>=1)
+		{
+			time(&cursor);
+			buffer[row]=buffer[row]^col;
+		}
+	}
+	memcpy(shmaddr+47,buffer,10);	
+	shmaddr[10] = (cnt%10000)/1000;
+	shmaddr[11] = (cnt%1000)/100;
+	shmaddr[12] = (cnt%100)/10;
+	shmaddr[13] = cnt%10;
 }
 int main()
 {
-	int i;
+	int i,j;
 	int in_process,out_process;
 	int mode=1;
 	int init=1;
@@ -379,7 +398,7 @@ int main()
 				{
 					for(i=0;i<=57;i++)
 						shmaddr[i]=0;
-					memset(shmaddr+15,' ',128);
+					memset(shmaddr+15,' ',32);
 
 					hour=0;
 					min=0;
@@ -393,12 +412,14 @@ int main()
 					prev_num=0;
 					key_num=0;
 					mode_flag=0;
+					on=1;
 
-					image[10]={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 					if(mode==1)
-						shmaddr[14]=-1;
+						shmaddr[14]=10;
+					memset(image,0,10);
+					memset(buffer,0,10);
 					row=0;
-					col=0x70;
+					col=0x40;
 					cursor_flag=-1;
 					time(&cursor);
 					init=0;
@@ -416,6 +437,7 @@ int main()
 									mode3();
 									break;
 					case 4 :
+									mode4();
 									break;
 					case 0 :
 									continue;

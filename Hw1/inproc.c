@@ -44,7 +44,7 @@ void read_mod(int shmid)	//	shmaddr[0~9] : SW key, shmadrr[57] : MENU key
 	int fd,rd,value,size = sizeof(struct input_event);
 	int dev,i;
 	char name[256] = "Unknown";
-	int * shmaddr=(int*)shmat(shmid,(int*)NULL,0);
+	unsigned char * shmaddr=(unsigned char*)shmat(shmid,(int*)NULL,0);
 	char * menu = "/dev/input/event0";
 	char * nine_key = "/dev/fpga_push_switch";
 	int input;
