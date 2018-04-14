@@ -34,6 +34,7 @@ int main(int argc, char *argv[])
 	key_t key;
 	int shmid = atoi(argv[1]);
 	read_mod(shmid);
+	printf("input end\n");
 }
 void read_mod(int shmid)	//	shmaddr[0~9] : SW key, shmadrr[57] : MENU key
 {
@@ -56,6 +57,7 @@ void read_mod(int shmid)	//	shmaddr[0~9] : SW key, shmadrr[57] : MENU key
 	}
 	dev = open(nine_key,O_RDWR);
 	while(1){
+<<<<<<< HEAD
 		printf("mode : %d\n",shmaddr[1]);
 		if((rd =  read(fd,ev,size * BUFF_SIZE)) >= size){		//read menu key
 			input=ev[0].code;
@@ -65,6 +67,19 @@ void read_mod(int shmid)	//	shmaddr[0~9] : SW key, shmadrr[57] : MENU key
 				shmaddr[57] = input;
 			prev_input = input;
 		}
+=======
+		if((rd =  read(fd,ev,size * BUFF_SIZE))>=size){		//read menu key
+			if(ev[0].value==KEY_PRESS)
+				shmaddr[57]=ev[0].code;
+			if(shmaddr[57]==158)
+			{
+				close(fd);
+				close(dev);
+				return;
+			}
+		}
+
+>>>>>>> dc89ad93ac5dc6d410ab05eda2a834785edad678
 		read(dev,&push_sw_buff,sizeof(push_sw_buff));
 		for(i=0;i<MAX_BUTTON;i++){					//if key is pressed and released, then event occur
 			if(buf[i]==1 && push_sw_buff[i]==0)
@@ -76,6 +91,5 @@ void read_mod(int shmid)	//	shmaddr[0~9] : SW key, shmadrr[57] : MENU key
 					buf[i]=push_sw_buff[i];
 		}
 	}
-	close(dev);
 }
 
