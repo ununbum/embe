@@ -63,13 +63,24 @@ void output_led(void)		//LED use mmap, and controlled by shmaddr[14]
 	}
 	else
 	{
-		if(shmaddr[14]==8)
+		if(shmaddr[14]==11)
+			*led_addr = 255;
+		else if(shmaddr[14]==12)
+			*led_addr = 136;
+		else if(shmaddr[14]==13)
+			*led_addr = 68;
+		else if(shmaddr[14]==14)
+			*led_addr = 34;
+		else if(shmaddr[14]==15)
+			*led_addr = 17;
+
+		else if(shmaddr[14]==8)
 			*led_addr = 64;
-		if(shmaddr[14]==4)
+		else if(shmaddr[14]==4)
 			*led_addr = 32;
-		if(shmaddr[14]==2)
+		else if(shmaddr[14]==2)
 			*led_addr = 16;
-		if(shmaddr[14]==0)
+		else if(shmaddr[14]==0)
 			*led_addr = 0; 
 	}
 	

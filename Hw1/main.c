@@ -36,6 +36,10 @@ time_t cursor;
 
 //mode 3,4
 
+
+int self_test=-1;
+char text[33]="Fpga_self_testerPress_2_and_3_SW";
+char test[10]="testing...";
 unsigned char input[9][3]={
 	{'.','Q','Z'},
 	{'A','B','C'},
@@ -342,6 +346,127 @@ void mode4(void)
 	shmaddr[12] = (cnt%100)/10;
 	shmaddr[13] = cnt%10;
 }
+void mode5(void)		//fpga_self_tester
+{
+	int i,j;
+
+	if(self_test==-1)
+	{
+		memset(shmaddr+10,8,4);
+		shmaddr[14]=11;
+		memcpy(shmaddr+15,text,32);
+		memset(shmaddr+47,0x7f,10);
+		for(i=0;i<10;i++)
+		{
+			if(shmaddr[i]==1)
+			{
+				break;
+			}
+		}	
+		if(i!=10)
+		{
+			for(j=i+1;j<10;j++)
+			{
+				if(shmaddr[j]==1)
+				{
+					break;
+				}
+			}
+		}
+		else
+			return;
+		double_key++;
+		if(double_key!=100000)
+			return;
+		else
+		{
+			printf("%d\n",i);
+			if(i==0)
+				sprintf(text,"%dst_key_pressed ",i+1);
+			else if(i==1)
+				sprintf(text,"%dnd_key_pressed ",i+1);
+			else if(i==1)
+				sprintf(text,"%drd_key_pressed ",i+1);
+			else
+				sprintf(text,"%dth_key_pressed ",i+1);
+			memcpy(shmaddr+15,text,strlen(text));
+			if(i==1 && j==2)
+			{
+				self_test=1;		
+				memset(shmaddr+10,0,4);
+				shmaddr[14]=11;
+				memset(shmaddr+15,' ',32);
+				memset(shmaddr+47,0x00,10);
+				cnt=-1;
+				time(&cursor);
+			}
+			shmaddr[i]=0;
+			shmaddr[j]=0;
+			double_key=0;
+		}
+	}
+	else if(difftime(time(NULL),cursor)>=0.1)
+	{
+		cnt++;
+		printf("%d\n",cnt);
+		if(cnt<=2)
+			shmaddr[14]=cnt+12;
+		else if(cnt==3)
+		{
+			shmaddr[14]=12+cnt;
+			shmaddr[10]=8;
+		}
+		else if(cnt==4)
+		{
+			shmaddr[14]=0;
+			shmaddr[10]=0;
+			shmaddr[11]=8;
+			memset(shmaddr+47,0x40,10);
+		}
+		else if(cnt==5)
+		{
+			shmaddr[14]=0;
+			shmaddr[10]=0;
+			shmaddr[11]=0;
+			shmaddr[12]=8;
+			memset(shmaddr+47,0x38,10);
+		}
+		else if(cnt==6)
+		{
+
+			shmaddr[14]=0;
+			shmaddr[10]=0;
+			shmaddr[11]=0;
+			shmaddr[12]=0;
+			shmaddr[13]=8;
+			memset(shmaddr+47,0x07,10);
+		}
+		else if(cnt<=49)
+		{
+			shmaddr[14]=0;
+			shmaddr[10]=0;
+			shmaddr[11]=0;
+			shmaddr[12]=0;
+			shmaddr[13]=0;
+			memset(shmaddr+47,0x00,10);
+			memset(shmaddr+15,' ',32);
+			if(cnt<=17)
+				memcpy(shmaddr+15,test+(strlen(test)-(cnt-7)),cnt-7);
+			else if(cnt<=39)
+				memcpy(shmaddr+15+cnt-17,test,strlen(test));
+			else
+				memcpy(shmaddr+15+cnt-17,test,strlen(test)-(cnt-39));
+			
+		}
+		else
+		{
+			cnt=0;
+			self_test=-1;
+		}
+		time(&cursor);
+	}
+
+}
 int main()
 {
 	int i,j;
@@ -384,7 +509,7 @@ int main()
 				{
 					mode++;
 					init=1;
-					if(mode==5)
+					if(mode==6)
 						mode=1;
 				}
 				else if(shmaddr[57]==114)
@@ -392,7 +517,7 @@ int main()
 					mode--;
 					init=1;
 					if(mode==0)
-						mode=4;
+						mode=5;
 				}
 				if(init==1)			//init all shmaddr and global var
 				{
@@ -421,6 +546,10 @@ int main()
 					row=0;
 					col=0x40;
 					cursor_flag=-1;
+					double_key=0;
+
+					self_test=-1;
+
 					time(&cursor);
 					init=0;
 				}
@@ -439,7 +568,10 @@ int main()
 					case 4 :
 									mode4();
 									break;
-					case 0 :
+					case 5 :
+									mode5();
+									break;
+					deafault :
 									continue;
 				}
 			}
