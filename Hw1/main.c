@@ -51,7 +51,16 @@ unsigned char input[9][3]={
 	{'T','U','V'},
 	{'W','X','Y'},
 };
+	
 
+//mode 5
+
+/***********************************
+module name : mode1
+parameter : none
+function : show time on FND and light
+and light LED by edit or fix
+************************************/
 void mode1(void)
 {
 	int i;
@@ -72,7 +81,7 @@ void mode1(void)
 	{
 		if(shmaddr[i]==1)
 		{
-			if(i==0)
+			if(i==0)		//button 1 set flag for edit time
 			{
 				if(shmaddr[14]==10)
 					shmaddr[14]=1;
@@ -82,18 +91,18 @@ void mode1(void)
 			}
 			if(shmaddr[14]==1)
 			{
-				if(i==1)
+				if(i==1)		//button 2 initialize to raw_time
 				{
 					elapse_hour=0;
 					elapse_min=0;
 					shmaddr[1]=0;
 				}
-				else if(i==2)
+				else if(i==2)	//button 3 increase 1hour
 				{
 					elapse_hour++;
 					shmaddr[2]=0;
 				}
-				else if(i==3)
+				else if(i==3)	//button 4 increase 1 minute
 				{
 					elapse_min++;
 					shmaddr[3]=0;
@@ -110,13 +119,21 @@ void mode1(void)
 	shmaddr[10]=hour/10;
 	shmaddr[11]=hour%10;
 	shmaddr[12]=min/10;
-	shmaddr[13]=min%10;
-
+	shmaddr[13]=min%10;	//shared memory for FND
 }
+
+
+/***********************************
+module name : mode2
+parameter : none
+function : Count number and change
+to Decimal,Octal,tetramal,Binary
+and show to FND and LED
+***********************************/
 
 void mode2(void)
 {
-	int selector[4]={10,8,4,2};
+	int selector[4]={10,8,4,2};		//change multiplier
 	int tmp;
 	int i;
 	for(i = 0;i<4;i++)
@@ -125,16 +142,16 @@ void mode2(void)
 		{
 			if(i==0)
 			{
-				select_idx++;
+				select_idx++;		//change multiplier
 				if(select_idx==4)
 					select_idx=0;
 				mul=selector[select_idx];
 			}
-			else if(i==1)
+			else if(i==1)			//increase second digit
 				res+=mul*mul;
-			else if(i==2)
+			else if(i==2)			//increase third digit
 				res+=mul;
-			else if(i==3)
+			else if(i==3)			//increase fourth digit
 				res++;
 			shmaddr[i]=0;
 		}
@@ -149,14 +166,22 @@ void mode2(void)
 		shmaddr[10]=0;
 	}
 }
+/***********************************
+module name : mode3
+parameter : none
+function : edit text editor each 
+button has 3 charater and some keys
+have special fuction like clear,
+space,change to number
+***********************************/
 void mode3(void)
 {
 	int i=0;
 	int j=0;
 	int func_flag=0;
-	unsigned char buf=' ';		//function key
+	unsigned char buf=' ';		//charater to input
 
-	memcpy(shmaddr+47,input_mode[mode_flag],10);
+	memcpy(shmaddr+47,input_mode[mode_flag],10);		//for show input mode on Dot matrix
 	for(i=0;i<10;i++)
 	{
 		if(shmaddr[i]==1)
@@ -177,14 +202,13 @@ void mode3(void)
 	else
 		return;
 	double_key++;
-	if(double_key!=100000)
+	if(double_key!=100000)		//for detecting double key input
 		return;
 	else
 		double_key=0;
 
 	if(i==1 && j==2)
 	{
-		printf("clear\n");
 		memset(shmaddr+15,' ',32);
 		cnt+=2;
 		ind=-1;
@@ -195,7 +219,6 @@ void mode3(void)
 	}
 	else if(i==4 && j==5)
 	{
-	//	printf("change\n");
 		if(mode_flag==0)
 			mode_flag=1;
 		else
@@ -205,33 +228,30 @@ void mode3(void)
 	}
 	else if(i==7 && j==8)
 	{
-		//printf("space\n");
 		buf=' ';
 		ind++;
 		cnt+=2;
 		func_flag=1;
-	//	return;
 	}
-	else if(j==10)
+	else if(j==10)		//if only one key is input
 	{
 		if(mode_flag==0)
 		{
-			if(prev_num==i)
+			if(prev_num==i)	//change character
 			{
 				cnt++;
 				buf = input[i][key_num++];
 				if(key_num==3)
 					key_num=0;
 			}
-			else
+			else	//input to string and buf is another character
 			{
-			//	printf("%d %d\n",i,prev_num);
 				ind++;
 				cnt++;
 				buf = input[i][key_num];
 			}
 		}
-		else
+		else			//for number input
 		{
 			ind++;
 			cnt++;
@@ -243,7 +263,7 @@ void mode3(void)
 	shmaddr[j]=0;
 	if(ind>=0 && func_flag==0)
 	{
-		if(ind>=32)
+		if(ind>=32)		//if string is longer than 32 character, then push from right to left
 		{
 			for(i=0;i<31;i++)
 				shmaddr[i+15]=shmaddr[i+16];
@@ -256,7 +276,16 @@ void mode3(void)
 	shmaddr[11] = (cnt%1000)/100;
 	shmaddr[12] = (cnt%100)/10;
 	shmaddr[13] = cnt%10;
+	//show how many button that user pressed
 }
+/***********************************
+module name : mode4
+parameter : none
+function : draw to Dot matrix each
+button has each funciton like move
+cursor or draw on cursor, clear,
+and reverse picture
+***********************************/
 void mode4(void)
 {
 	int i,j;
@@ -334,18 +363,24 @@ void mode4(void)
 	}
 	if(cursor_flag==-1)
 	{
-		if(difftime(time(NULL),cursor)>=1)
+		if(difftime(time(NULL),cursor)>=1)	//each 1sec, cursor blink
 		{
 			time(&cursor);
-			buffer[row]=buffer[row]^col;
+			buffer[row]=buffer[row]^col;	//buffer make Dot can show at once
 		}
 	}
 	memcpy(shmaddr+47,buffer,10);	
 	shmaddr[10] = (cnt%10000)/1000;
 	shmaddr[11] = (cnt%1000)/100;
 	shmaddr[12] = (cnt%100)/10;
-	shmaddr[13] = cnt%10;
+	shmaddr[13] = cnt%10;	//show how many times user pressed button
 }
+/***********************************
+module name : mode5
+parameter : none
+function : test the fpga if there are
+some error on display
+***********************************/
 void mode5(void)		//fpga_self_tester
 {
 	int i,j;
@@ -357,7 +392,7 @@ void mode5(void)		//fpga_self_tester
 		if(clock()-tic>=1500000)
 			sprintf(text,"Fpga_self_testerPress_2_and_3_SW");
 		memcpy(shmaddr+15,text,32);
-		memset(shmaddr+47,0x7f,10);
+		memset(shmaddr+47,0x7f,10);		//on all light on fpga display
 		for(i=0;i<10;i++)
 		{
 			if(shmaddr[i]==1)
@@ -380,7 +415,7 @@ void mode5(void)		//fpga_self_tester
 		double_key++;
 		if(double_key!=100000)
 			return;
-		else
+		else	//if button pressed, show which key are pressed and act
 		{
 			if(i==0)
 				sprintf(text,"%dst_key_Pressed Press_2_and_3_SW",i+1);
@@ -391,7 +426,7 @@ void mode5(void)		//fpga_self_tester
 			else 
 				sprintf(text,"%dth_key_Pressed Press_2_and_3_SW",i+1);
 			memcpy(shmaddr+15,text,32);
-			if(i==1 && j==2)
+			if(i==1 && j==2)	//if 2 and 3 button are pressed, display some work
 			{
 				self_test=1;		
 				memset(shmaddr+10,0,4);
@@ -407,7 +442,7 @@ void mode5(void)		//fpga_self_tester
 			tic=clock();
 		}
 	}
-	else if(clock()-tic>=500000)
+	else if(clock()-tic>=500000)		//some work	each action change by 0.5sec
 	{
 		cnt++;
 		if(cnt<=2)
@@ -467,6 +502,13 @@ void mode5(void)		//fpga_self_tester
 	}
 
 }
+/***********************************
+module name : main
+parameter : none
+function : fork child process and 
+calculate all functions act by using
+shared memory
+***********************************/
 int main()
 {
 	int i,j;

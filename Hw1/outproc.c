@@ -39,6 +39,14 @@ unsigned char *led_addr=0;
 void output_led(void)		//LED use mmap, and controlled by shmaddr[14]
 {
 
+	/******************************
+	10 : init flag
+	1 : timer flag for blink
+	2,4,8: counter LED display flag
+	11~15:some work
+	0:off flag
+	******************************/
+
 	if(shmaddr[14]==10)
 	{
 		*led_addr = 128;
@@ -148,8 +156,6 @@ void output_dot(void)	//DOT controlled by shmaddr[47~56]
 
 	write(dev,shmaddr+47,10);
 	
-//	for(i=0;i<10;i++)
-//		printf("%d",shmaddr[i+47]);
 	close(dev);
 }
 void open_led(void)		//mmap LED Device
@@ -178,12 +184,12 @@ int main(int argc,char **argv)		//output all shmaddr[10~56],FND,LED,TEXT,DOT
 	open_led();
 	while(1)
 	{
-		if(shmaddr[57]==158)
+		if(shmaddr[57]==158)	//if 'back' key pressed,exit process
 			break;
-			output_fnd();
-			output_led();
-			output_dot();
-			output_text();
+		output_fnd();
+		output_led();
+		output_dot();
+		output_text();
 	}
 
 	munmap(led_addr,4096);

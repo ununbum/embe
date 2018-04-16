@@ -60,7 +60,7 @@ void read_mod(int shmid)	//	shmaddr[0~9] : SW key, shmadrr[57] : MENU key
 		if((rd =  read(fd,ev,size * BUFF_SIZE))>=size){		//read menu key
 			if(ev[0].value==KEY_PRESS)
 				shmaddr[57]=ev[0].code;
-			if(shmaddr[57]==158)
+			if(shmaddr[57]==158)	//exit if 'back' key input
 			{
 				close(fd);
 				close(dev);
