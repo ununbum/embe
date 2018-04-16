@@ -32,7 +32,7 @@ unsigned char row=0,col=0x70;
 unsigned char on=1;
 int cursor_flag=-1;
 time_t cursor;
-
+clock_t tic;
 
 //mode 3,4
 
@@ -354,6 +354,8 @@ void mode5(void)		//fpga_self_tester
 	{
 		memset(shmaddr+10,8,4);
 		shmaddr[14]=11;
+		if(clock()-tic>=1500000)
+			sprintf(text,"Fpga_self_testerPress_2_and_3_SW");
 		memcpy(shmaddr+15,text,32);
 		memset(shmaddr+47,0x7f,10);
 		for(i=0;i<10;i++)
@@ -380,16 +382,15 @@ void mode5(void)		//fpga_self_tester
 			return;
 		else
 		{
-			printf("%d\n",i);
 			if(i==0)
-				sprintf(text,"%dst_key_pressed ",i+1);
+				sprintf(text,"%dst_key_Pressed Press_2_and_3_SW",i+1);
 			else if(i==1)
-				sprintf(text,"%dnd_key_pressed ",i+1);
+				sprintf(text,"%dnd_key_Pressed Press_2_and_3_SW",i+1);
 			else if(i==1)
-				sprintf(text,"%drd_key_pressed ",i+1);
-			else
-				sprintf(text,"%dth_key_pressed ",i+1);
-			memcpy(shmaddr+15,text,strlen(text));
+				sprintf(text,"%drd_key_Pressed Press_2_and_3_SW",i+1);
+			else 
+				sprintf(text,"%dth_key_Pressed Press_2_and_3_SW",i+1);
+			memcpy(shmaddr+15,text,32);
 			if(i==1 && j==2)
 			{
 				self_test=1;		
@@ -398,17 +399,17 @@ void mode5(void)		//fpga_self_tester
 				memset(shmaddr+15,' ',32);
 				memset(shmaddr+47,0x00,10);
 				cnt=-1;
-				time(&cursor);
+				tic=clock();
 			}
 			shmaddr[i]=0;
 			shmaddr[j]=0;
 			double_key=0;
+			tic=clock();
 		}
 	}
-	else if(difftime(time(NULL),cursor)>=0.1)
+	else if(clock()-tic>=500000)
 	{
 		cnt++;
-		printf("%d\n",cnt);
 		if(cnt<=2)
 			shmaddr[14]=cnt+12;
 		else if(cnt==3)
@@ -455,15 +456,14 @@ void mode5(void)		//fpga_self_tester
 			else if(cnt<=39)
 				memcpy(shmaddr+15+cnt-17,test,strlen(test));
 			else
-				memcpy(shmaddr+15+cnt-17,test,strlen(test)-(cnt-39));
-			
+				memcpy(shmaddr+15+cnt-17,test,strlen(test)-(cnt-39));	
 		}
 		else
 		{
 			cnt=0;
 			self_test=-1;
 		}
-		time(&cursor);
+		tic=clock();
 	}
 
 }
@@ -547,10 +547,12 @@ int main()
 					col=0x40;
 					cursor_flag=-1;
 					double_key=0;
+					sprintf(text,"Fpga_self_testerPress_2_and_3_SW");
 
 					self_test=-1;
 
 					time(&cursor);
+					tic=clock();
 					init=0;
 				}
 			//	printf("mode : %d\n",mode);	
