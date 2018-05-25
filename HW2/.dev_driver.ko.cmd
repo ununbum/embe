@@ -1,0 +1,1 @@
+cmd_/home/embe/Desktop/embe/HW2/dev_driver.ko := arm-none-linux-gnueabi-ld -EL -r  -T /work/achroimx_kernel/scripts/module-common.lds --build-id  -o /home/embe/Desktop/embe/HW2/dev_driver.ko /home/embe/Desktop/embe/HW2/dev_driver.o /home/embe/Desktop/embe/HW2/dev_driver.mod.o
