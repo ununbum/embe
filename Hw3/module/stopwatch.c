@@ -50,7 +50,7 @@ irqreturn_t inter_handler2(int irq, void* dev_id, struct pt_regs* reg);
 irqreturn_t inter_handler3(int irq, void* dev_id, struct pt_regs* reg);
 irqreturn_t inter_handler4(int irq, void* dev_id, struct pt_regs* reg);
 
-static inter_usage=0;
+static int inter_usage=0;
 int interruptCount=0;
 
 
@@ -92,6 +92,8 @@ void start_timer(unsigned long timeout)
 {
 	struct struct_timer *pdata = (struct struct_timer*)timeout;
 	pdata->seconds++;
+	if(pdata->seconds==3599)
+		pdata->seconds=0;
 	write_fnd();
 	
 	mytime.timer.expires = get_jiffies_64() + HZ;
@@ -165,15 +167,16 @@ irqreturn_t inter_handler3(int irq, void* dev_id,struct pt_regs* reg) {
 irqreturn_t inter_handler4(int irq, void* dev_id, struct pt_regs* reg) {
         printk(KERN_ALERT "interrupt4!!! = %x\n", gpio_get_value(IMX_GPIO_NR(5, 14)));     
 	myexit.seconds =0;
-	
-	del_timer_sync(&myexit.timer);
-	
-	myexit.timer.expires = get_jiffies_64() + 3*HZ;
-	myexit.timer.data = (unsigned long)&myexit;
-	myexit.timer.function = wake_app;
+	if(gpio_get_value(IMX_GPIO_NR(5,14)))	
+		del_timer_sync(&myexit.timer);
+	else
+	{
+		myexit.timer.expires = get_jiffies_64() + 3*HZ;
+		myexit.timer.data = (unsigned long)&myexit;
+		myexit.timer.function = wake_app;
 
-	add_timer(&myexit.timer);
-	
+		add_timer(&myexit.timer);
+	}
 	return IRQ_HANDLED;
 }
 
@@ -182,31 +185,36 @@ static int inter_open(struct inode *minode, struct file *mfile){
 	int ret;
 	int irq;
 
+	if(inter_usage!=0)
+		return 0;
+
 	printk(KERN_ALERT "Open Module\n");
 
 	// int1
 	gpio_direction_input(IMX_GPIO_NR(1,11));
 	irq = gpio_to_irq(IMX_GPIO_NR(1,11));
 	printk(KERN_ALERT "IRQ Number : %d\n",irq);
-	ret=request_irq(irq, inter_handler1, IRQF_TRIGGER_FALLING, "home", 0);
+	ret=request_irq(irq,(void*) inter_handler1, IRQF_TRIGGER_FALLING, "home", 0);
 
 	// int2
 	gpio_direction_input(IMX_GPIO_NR(1,12));
 	irq = gpio_to_irq(IMX_GPIO_NR(1,12));
 	printk(KERN_ALERT "IRQ Number : %d\n",irq);
-	ret=request_irq(irq, inter_handler2, IRQF_TRIGGER_FALLING, "back", 0);
+	ret=request_irq(irq,(void*) inter_handler2, IRQF_TRIGGER_FALLING, "back", 0);
 
 	// int3
 	gpio_direction_input(IMX_GPIO_NR(2,15));
 	irq = gpio_to_irq(IMX_GPIO_NR(2,15));
 	printk(KERN_ALERT "IRQ Number : %d\n",irq);
-	ret=request_irq(irq, inter_handler3, IRQF_TRIGGER_FALLING, "volup", 0);
+	ret=request_irq(irq, (void*)inter_handler3, IRQF_TRIGGER_FALLING, "volup", 0);
 
 	// int4
 	gpio_direction_input(IMX_GPIO_NR(5,14));
 	irq = gpio_to_irq(IMX_GPIO_NR(5,14));
 	printk(KERN_ALERT "IRQ Number : %d\n",irq);
-	ret=request_irq(irq, inter_handler4, IRQF_TRIGGER_FALLING, "voldown", 0);
+	ret=request_irq(irq, (void*)inter_handler4, IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING, "voldown", 0);
+
+	inter_usage=1;
 
 	return 0;
 }
@@ -219,7 +227,8 @@ static int inter_release(struct inode *minode, struct file *mfile){
 	elapsed=0;
 	next_expire=0;
 	start_flag=0;
-	pause_flag=0;
+	pause_flag=1;
+	inter_usage=0;
 	printk(KERN_ALERT "Release Module\n");
 	return 0;
 }
