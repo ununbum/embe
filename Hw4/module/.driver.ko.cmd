@@ -1,0 +1,1 @@
+cmd_/home/embe/Desktop/embe/Hw4/module/driver.ko := arm-none-linux-gnueabi-ld -EL -r  -T /work/achroimx_kernel/scripts/module-common.lds --build-id  -o /home/embe/Desktop/embe/Hw4/module/driver.ko /home/embe/Desktop/embe/Hw4/module/driver.o /home/embe/Desktop/embe/Hw4/module/driver.mod.o
